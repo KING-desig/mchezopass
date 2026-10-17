@@ -1,0 +1,458 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --neon-green: #39ff14;
+  --neon-red: #ff073a;
+}
+
+body {
+  background-color: #050505;
+  color: white;
+  font-family: 'Rajdhani', sans-serif;
+  /* Tactical grid background */
+  background-image: 
+    linear-gradient(rgba(57, 255, 20, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 255, 20, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+h1, h2, h3, .gaming-font {
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Hide scrollbar */
+::-webkit-scrollbar { width: 0px; background: transparent; }
+
+/* Custom Animations */
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+.animate-pulse-live {
+  animation: pulse-live 1.5s infinite;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out forwards;
+}
+
+.glass-dark {
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel {
+  background: rgba(13, 18, 15, 0.82);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.neon-text-green {
+  color: var(--neon-green);
+  text-shadow: 0 0 5px rgba(57, 255, 20, 0.55), 0 0 14px rgba(57, 255, 20, 0.25);
+}
+
+.game-world {
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+  background-image:
+    radial-gradient(ellipse at 50% -18%, rgba(57, 255, 20, 0.12), transparent 48%),
+    radial-gradient(ellipse at 100% 54%, rgba(35, 103, 86, 0.13), transparent 38%),
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
+  animation: arena-drift 24s linear infinite;
+}
+
+.game-world::before,
+.game-world::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.game-world::before {
+  inset: 0;
+  opacity: 0.28;
+  background: radial-gradient(ellipse at 50% 0%, rgba(57, 255, 20, 0.14), transparent 55%);
+  animation: arena-breathe 8s ease-in-out infinite alternate;
+}
+
+.game-world::after {
+  top: -20vh;
+  left: 0;
+  width: 100%;
+  height: 18vh;
+  opacity: 0.2;
+  background: linear-gradient(180deg, transparent, rgba(57, 255, 20, 0.1), transparent);
+  animation: scan-pass 12s linear infinite;
+}
+
+.game-world > header {
+  background: rgba(7, 12, 10, 0.84);
+  border-color: rgba(57, 255, 20, 0.2);
+  box-shadow: 0 1px 0 rgba(57, 255, 20, 0.08), 0 12px 36px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(16px);
+}
+
+.game-world > header h1 {
+  color: var(--neon-green);
+  text-shadow: 0 0 14px rgba(57, 255, 20, 0.24);
+}
+
+.game-world .bg-gray-800 {
+  background-color: rgba(12, 17, 15, 0.9);
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent 58%);
+  border-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.18);
+}
+
+.game-world input,
+.game-world select,
+.game-world textarea {
+  border-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(4, 8, 6, 0.82);
+  color: #f3f4f6;
+}
+
+.game-world :focus-visible {
+  outline: 2px solid var(--neon-green);
+  outline-offset: 3px;
+}
+
+.game-world > div:not(header) {
+  animation: route-arrive 550ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.game-world button {
+  transition-property: transform, background-color, border-color, color, box-shadow;
+  transition-duration: 180ms;
+  transition-timing-function: ease-out;
+}
+
+.game-world button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.game-world button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.game-motion-card {
+  animation: game-card-enter 520ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  transform-origin: center top;
+}
+
+.game-motion-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3), 0 0 20px rgba(57, 255, 20, 0.06);
+}
+
+.game-world .fixed.inset-0 > div {
+  animation: modal-arrive 220ms cubic-bezier(0.18, 0.8, 0.25, 1) both;
+}
+
+.squad-signal {
+  position: relative;
+  display: grid;
+  width: min(100%, 17rem);
+  aspect-ratio: 2.65;
+  place-items: center;
+  margin: 0 auto 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(57, 255, 20, 0.18);
+  background: radial-gradient(ellipse at center, rgba(57, 255, 20, 0.12), rgba(4, 11, 7, 0.15) 45%, transparent 72%);
+}
+
+.squad-signal__ring {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(57, 255, 20, 0.22);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.squad-signal__ring--outer { width: 9rem; }
+.squad-signal__ring--middle { width: 6.5rem; }
+.squad-signal__ring--inner { width: 3.8rem; }
+
+.squad-signal__sweep {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  width: 4.5rem;
+  height: 4.5rem;
+  background: conic-gradient(from 0deg, transparent 0 76%, rgba(57, 255, 20, 0.34));
+  clip-path: polygon(50% 50%, 100% 0, 100% 100%);
+  transform-origin: 0 0;
+  animation: radar-rotate 5s linear infinite;
+}
+
+.squad-signal__core {
+  position: absolute;
+  top: 43%;
+  left: 50%;
+  display: grid;
+  width: 2.1rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(57, 255, 20, 0.6);
+  border-radius: 50%;
+  background: #07110a;
+  color: var(--neon-green);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px;
+  font-weight: 900;
+  box-shadow: 0 0 20px rgba(57, 255, 20, 0.28);
+  transform: translate(-50%, -50%);
+  animation: signal-core 2.4s ease-in-out infinite;
+}
+
+.squad-signal__target {
+  position: absolute;
+  width: 5px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--neon-green);
+  box-shadow: 0 0 10px 3px rgba(57, 255, 20, 0.48);
+  animation: target-blip 2.8s ease-out infinite;
+}
+
+.squad-signal__target--one { left: calc(50% + 37px); top: 23%; }
+.squad-signal__target--two { left: calc(50% - 52px); top: 57%; animation-delay: 1.2s; }
+
+.squad-signal__caption {
+  position: absolute;
+  bottom: 7px;
+  left: 9px;
+  color: rgba(57, 255, 20, 0.68);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.home-menu-enter {
+  animation: menu-arrive 520ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.home-nav-pulse {
+  animation: nav-pulse 2.8s ease-in-out infinite;
+}
+
+.game-artwork {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--game-accent);
+  background-image: var(--game-artwork);
+  isolation: isolate;
+}
+
+.game-artwork--compact {
+  position: relative;
+  inset: auto;
+  width: calc(100% + 2rem);
+  height: clamp(88px, 24vw, 126px);
+  margin: -1rem -1rem 1rem;
+}
+
+.game-artwork__orbit,
+.game-artwork__grid,
+.game-artwork__beam,
+.game-artwork__copy,
+.game-artwork__index {
+  position: absolute;
+}
+
+.game-artwork__orbit {
+  top: -60%;
+  right: 8%;
+  width: 78%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--game-accent), transparent 46%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18px color-mix(in srgb, var(--game-accent), transparent 91%), 0 0 0 42px color-mix(in srgb, var(--game-accent), transparent 94%);
+  animation: game-orbit 30s linear infinite;
+}
+
+.game-artwork__grid {
+  inset: 0;
+  opacity: 0.25;
+  background-image: linear-gradient(120deg, transparent 45%, color-mix(in srgb, var(--game-accent), transparent 58%) 45.2%, transparent 45.5%);
+  background-size: 100% 100%;
+  transform: translateX(-100%);
+  animation: game-sweep 8s ease-in-out infinite;
+}
+
+.game-artwork__beam {
+  top: -35%;
+  bottom: -35%;
+  left: -34%;
+  width: 22%;
+  opacity: 0.26;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--game-accent), transparent 35%), transparent);
+  filter: blur(5px);
+  transform: skewX(-22deg);
+  animation: game-beam 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.game-artwork__copy {
+  z-index: 1;
+  bottom: 12px;
+  left: 16px;
+  display: grid;
+  gap: 4px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
+}
+
+.game-artwork__copy span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  opacity: 0.78;
+}
+
+.game-artwork__copy strong {
+  color: white;
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(16px, 4vw, 24px);
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.game-artwork__index {
+  right: 14px;
+  bottom: 12px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  opacity: 0.72;
+}
+
+.game-artwork--compact .game-artwork__copy {
+  bottom: 12px;
+  left: 16px;
+}
+
+.game-artwork--compact .game-artwork__copy strong {
+  font-size: clamp(14px, 3.5vw, 20px);
+}
+
+@keyframes game-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes game-sweep {
+  0%, 15% { transform: translateX(-100%); }
+  55%, 100% { transform: translateX(100%); }
+}
+
+@keyframes game-beam {
+  0%, 12% { left: -34%; opacity: 0; }
+  24% { opacity: 0.28; }
+  58% { left: 118%; opacity: 0.18; }
+  70%, 100% { left: 118%; opacity: 0; }
+}
+
+@keyframes game-card-enter {
+  from { opacity: 0; translate: 0 14px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes modal-arrive {
+  from { opacity: 0; scale: 0.97; translate: 0 8px; }
+  to { opacity: 1; scale: 1; translate: 0 0; }
+}
+
+@keyframes radar-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes signal-core {
+  0%, 100% { box-shadow: 0 0 12px rgba(57, 255, 20, 0.18); }
+  50% { box-shadow: 0 0 24px rgba(57, 255, 20, 0.48); }
+}
+
+@keyframes target-blip {
+  0%, 100% { opacity: 0.35; scale: 0.8; }
+  45% { opacity: 1; scale: 1.4; }
+}
+
+@keyframes menu-arrive {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes nav-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(57, 255, 20, 0.36); }
+  50% { box-shadow: 0 0 24px rgba(57, 255, 20, 0.72); }
+}
+
+@keyframes arena-drift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to { background-position: 0 0, 0 0, 44px 44px, 44px 44px; }
+}
+
+@keyframes arena-breathe {
+  from { opacity: 0.16; transform: scale(0.96); }
+  to { opacity: 0.34; transform: scale(1.04); }
+}
+
+@keyframes scan-pass {
+  from { transform: translateY(0); }
+  to { transform: translateY(140vh); }
+}
+
+@keyframes route-arrive {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .game-artwork__orbit,
+  .game-artwork__grid,
+  .game-artwork__beam {
+    animation: none !important;
+    transform: none;
+  }
+
+  .squad-signal__sweep,
+  .squad-signal__core,
+  .squad-signal__target,
+  .home-menu-enter,
+  .home-nav-pulse {
+    animation: none !important;
+  }
+
+  .game-motion-card,
+  .game-world .fixed.inset-0 > div {
+    animation: none !important;
+  }
+}

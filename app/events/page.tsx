@@ -1,0 +1,265 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../utils/supabase';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface Event {
+  id: string;
+  title: string;
+  game: string;
+  start_date: string;
+  max_teams: number;
+  whatsapp_link: string;
+  profiles: { username: string };
+}
+
+const GAMES = [
+  { name: 'PUBG Mobile', label: 'BATTLE ROYALE', accent: 'text-orange-500', border: 'border-orange-500/30', glow: 'shadow-orange-500/20', gradient: 'from-orange-700 via-yellow-600 to-orange-900', bgImage: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80' },
+  { name: 'Call of Duty Mobile', label: 'TACTICAL OPS', accent: 'text-blue-500', border: 'border-blue-500/30', glow: 'shadow-blue-500/20', gradient: 'from-slate-800 via-blue-900 to-slate-950', bgImage: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&w=800&q=80' },
+  { name: 'FIFA / EA FC', label: 'FOOTBALL', accent: 'text-green-500', border: 'border-green-500/30', glow: 'shadow-green-500/20', gradient: 'from-green-700 via-emerald-600 to-green-900', bgImage: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=800&q=80' },
+  { name: 'Free Fire', label: 'SURVIVAL', accent: 'text-red-500', border: 'border-red-500/30', glow: 'shadow-red-500/20', gradient: 'from-red-700 via-orange-600 to-red-900', bgImage: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?auto=format&fit=crop&w=800&q=80' },
+  { name: 'eFootball', label: 'FOOTBALL SIM', accent: 'text-sky-400', border: 'border-sky-500/30', glow: 'shadow-sky-500/20', gradient: 'from-sky-700 via-blue-600 to-sky-900', bgImage: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80' },
+];
+
+const getGameTheme = (game: string) => {
+  const found = GAMES.find((g) => g.name === game);
+  if (found) return found;
+  return { name: game, label: 'GAMING', accent: 'text-gray-400', border: 'border-gray-500/30', glow: 'shadow-gray-500/20', gradient: 'from-gray-700 via-gray-800 to-gray-950', bgImage: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80' };
+};
+
+export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [userId, setUserId] = useState('');
+  
+  const [title, setTitle] = useState('');
+  const [game, setGame] = useState('PUBG Mobile');
+  const [startDate, setStartDate] = useState('');
+  const [maxTeams, setMaxTeams] = useState(16);
+  const [whatsappLink, setWhatsappLink] = useState('');
+
+  const router = useRouter();
+
+  const fetchUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) setUserId(user.id);
+  };
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('events')
+      .select('*, profiles:organizer_id(username)')
+      .order('start_date', { ascending: true });
+
+    if (error) console.error('Fetch Events Error:', error);
+    if (!error && data) setEvents(data as Event[]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchUser();
+    fetchEvents();
+  }, []);
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId) return;
+
+    const { error } = await supabase.from('events').insert({
+      organizer_id: userId,
+      title,
+      game,
+      start_date: startDate,
+      max_teams: maxTeams,
+      whatsapp_link: whatsappLink,
+      is_free: true,
+      status: 'upcoming'
+    });
+
+    if (error) {
+      alert('Error creating event: ' + error.message);
+    } else {
+      setShowForm(false);
+      setTitle(''); setStartDate(''); setWhatsappLink('');
+      fetchEvents();
+    }
+  };
+
+  const handleJoinEvent = async (eventId: string) => {
+    if (!userId) return;
+    const { error } = await supabase.from('event_participants').insert({
+      event_id: eventId,
+      user_id: userId
+    });
+
+    if (error) {
+      alert('Error joining event: ' + error.message);
+    } else {
+      alert('Successfully joined the event! Check the WhatsApp link.');
+    }
+  };
+
+  return (
+    <main className="min-h-screen pb-24">
+      {/* Header */}
+      <header className="fixed top-0 w-full z-50 glass-panel border-b border-purple-900/50">
+        <div className="max-w-md mx-auto p-4 flex justify-between items-center">
+          <h1 className="text-xl font-black text-purple-400 gaming-font">TOURNAMENT <span className="text-white">HUB</span></h1>
+          <button onClick={() => router.push('/')} className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded border border-gray-700">BACK</button>
+        </div>
+      </header>
+
+      <div className="max-w-md mx-auto pt-24 px-4 space-y-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-black text-white gaming-font tracking-wider">UPCOMING EVENTS</h2>
+          <motion.button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_12px_rgba(57,255,20,0.4)]"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {showForm ? 'CANCEL' : '+ HOST EVENT'}
+          </motion.button>
+        </div>
+
+        {/* Create Event Form */}
+        <AnimatePresence>
+          {showForm && (
+            <motion.form
+              onSubmit={handleCreateEvent}
+              className="glass-panel p-4 rounded-xl border border-green-500/30 space-y-3"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Event Title</label>
+                <input type="text" placeholder="e.g., Saturday PUBG Cup" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Game</label>
+                <select value={game} onChange={(e) => setGame(e.target.value)} className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none">
+                  {GAMES.map((g) => (
+                    <option key={g.name}>{g.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Start Date & Time</label>
+                <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Max Teams/Players</label>
+                <input type="number" placeholder="16" value={maxTeams} onChange={(e) => setMaxTeams(Number(e.target.value))} required className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">WhatsApp Lobby Link</label>
+                <input type="text" placeholder="https://chat.whatsapp.com/..." value={whatsappLink} onChange={(e) => setWhatsappLink(e.target.value)} className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
+              </div>
+              <motion.button type="submit" className="w-full bg-green-500 hover:bg-green-400 text-black py-2 rounded font-black text-sm gaming-font tracking-wider" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                PUBLISH EVENT
+              </motion.button>
+            </motion.form>
+          )}
+        </AnimatePresence>
+
+        {/* Events List */}
+        {loading ? (
+          <div className="flex justify-center mt-10"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div></div>
+        ) : events.length === 0 ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-panel p-8 rounded-xl text-center border border-gray-800">
+            <p className="text-gray-400 text-sm gaming-font">NO UPCOMING EVENTS. HOST THE FIRST!</p>
+          </motion.div>
+        ) : (
+          <div className="space-y-4">
+            {events.map((event, index) => {
+              const theme = getGameTheme(event.game);
+              return (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.08 }}
+                  whileHover={{ y: -4 }}
+                  className={`glass-panel rounded-xl overflow-hidden border ${theme.border} shadow-lg ${theme.glow}`}
+                >
+                  {/* Event Banner */}
+                  <div className={`relative h-28 w-full overflow-hidden bg-gradient-to-br ${theme.gradient}`}>
+                    <img
+                      src={theme.bgImage}
+                      alt={event.game}
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      className="absolute inset-0 w-full h-full object-cover opacity-60"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                    <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
+                      <p className={`text-[9px] font-black ${theme.accent} gaming-font tracking-widest`}>{theme.label}</p>
+                    </div>
+                    <div className="absolute top-2 left-2 bg-purple-600/80 backdrop-blur-sm px-2 py-1 rounded">
+                      <p className="text-[9px] font-black text-white gaming-font tracking-widest">MAX {event.max_teams}</p>
+                    </div>
+                    <div className="absolute bottom-2 left-3 right-3">
+                      <h3 className="text-lg font-black text-white gaming-font tracking-wider drop-shadow-lg">{event.title}</h3>
+                    </div>
+                  </div>
+
+                  {/* Event Info */}
+                  <div className="p-4 bg-black/60 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold ${theme.accent}`}>{event.game}</span>
+                      <span className="text-gray-600">•</span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(event.start_date).toLocaleString([], { 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                      <p className="text-xs text-gray-300">
+                        Hosted by: <span className="font-bold text-white">{event.profiles?.username || 'Unknown'}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 mt-3">
+                      {event.whatsapp_link && (
+                        <motion.a
+                          href={event.whatsapp_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-center bg-green-600/20 text-green-400 border border-green-500/50 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_10px_rgba(57,255,20,0.2)]"
+                          whileHover={{ backgroundColor: "rgba(34, 197, 94, 1)", color: "black", boxShadow: "0px 0px 20px rgba(57, 255, 20, 0.8)" }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          JOIN LOBBY 💬
+                        </motion.a>
+                      )}
+                      <motion.button
+                        onClick={() => handleJoinEvent(event.id)}
+                        className="flex-1 bg-purple-600 hover:bg-purple-500 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_10px_rgba(147,51,234,0.3)]"
+                        whileHover={{ scale: 1.02, boxShadow: "0px 0px 20px rgba(147, 51, 234, 0.6)" }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        REGISTER NOW
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
