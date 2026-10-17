@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import PlayerAvatar from './PlayerAvatar';
 
 interface LfgPost {
   id: string;
@@ -11,7 +12,7 @@ interface LfgPost {
   location: string;
   whatsapp_link: string;
   created_at: string;
-  profiles: { username: string };
+  profiles: { username: string; avatar_url: string | null; avatar_preset: string | null };
 }
 
 // SINGLE SOURCE OF TRUTH: art + color identity + gradient fallback for every game
@@ -43,7 +44,7 @@ export default function LfgBoard() {
     setLoading(true);
     let query = supabase
       .from('lfg_posts')
-      .select('*, profiles(username)')
+      .select('*, profiles(username, avatar_url, avatar_preset)')
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -202,9 +203,16 @@ export default function LfgBoard() {
                   <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
                     <div>
                       <h3 className="text-lg font-black text-white gaming-font tracking-wider drop-shadow-lg">{post.game.toUpperCase()}</h3>
-                      <p className="text-[10px] text-gray-300 font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> HOST: {post.profiles?.username || 'UNKNOWN'}
-                      </p>
+                      <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold text-gray-300">
+                        <PlayerAvatar
+                          username={post.profiles?.username || 'Unknown'}
+                          avatarUrl={post.profiles?.avatar_url}
+                          avatarPreset={post.profiles?.avatar_preset}
+                          className="h-5 w-5 border border-white/20 text-[10px]"
+                        />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500"></span>
+                        HOST: {post.profiles?.username || 'UNKNOWN'}
+                      </div>
                     </div>
                   </div>
                 </div>

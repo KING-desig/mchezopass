@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 interface Team {
   id: string;
@@ -11,7 +12,7 @@ interface Team {
   tag: string;
   main_game: string;
   whatsapp_link: string;
-  profiles: { username: string };
+  profiles: { username: string; avatar_url: string | null; avatar_preset: string | null };
 }
 
 const GAMES = [
@@ -44,7 +45,7 @@ export default function TeamsPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('teams')
-      .select('*, profiles:captain_id(username)')
+      .select('*, profiles:captain_id(username, avatar_url, avatar_preset)')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -206,6 +207,12 @@ export default function TeamsPage() {
                   <div className="p-4 bg-black/60 space-y-3">
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                      <PlayerAvatar
+                        username={team.profiles?.username || 'Unknown'}
+                        avatarUrl={team.profiles?.avatar_url}
+                        avatarPreset={team.profiles?.avatar_preset}
+                        className="h-6 w-6 border border-white/15 text-xs"
+                      />
                       <p className="text-xs text-gray-300">
                         Captain: <span className="font-bold text-white">{team.profiles?.username || 'Unknown'}</span>
                       </p>

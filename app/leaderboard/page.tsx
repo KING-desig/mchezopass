@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabase';
 import { useRouter } from 'next/navigation';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 interface RatingSummary {
   score: number;
@@ -12,6 +13,8 @@ interface Player {
   id: string;
   username: string;
   main_game: string;
+  avatar_url: string | null;
+  avatar_preset: string | null;
   avg_score: number | null;
   total_ratings: number;
   wins: number;
@@ -27,7 +30,7 @@ export default function LeaderboardPage() {
     setLoading(true);
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username, main_game, ratings!rated_id (score)')
+      .select('id, username, main_game, avatar_url, avatar_preset, ratings!rated_id (score)')
       .limit(20); 
 
     if (profiles) {
@@ -49,6 +52,8 @@ export default function LeaderboardPage() {
           id: player.id,
           username: player.username,
           main_game: player.main_game,
+          avatar_url: player.avatar_url,
+          avatar_preset: player.avatar_preset,
           avg_score: avg_score ? parseFloat(avg_score) : null,
           total_ratings,
           wins,
@@ -108,6 +113,7 @@ export default function LeaderboardPage() {
                     {index + 1}
                   </div>
                   
+                  <PlayerAvatar username={player.username} avatarUrl={player.avatar_url} avatarPreset={player.avatar_preset} className="h-11 w-11 border border-white/15 text-lg" />
                   <div>
                     <h3 className="font-black text-white text-sm gaming-font">{player.username}</h3>
                     <p className="text-[10px] text-gray-500 font-bold">{player.main_game}</p>

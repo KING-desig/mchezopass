@@ -160,6 +160,37 @@ h1, h2, h3, .gaming-font {
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3), 0 0 20px rgba(57, 255, 20, 0.06);
 }
 
+.player-avatar {
+  isolation: isolate;
+  transition: transform 220ms cubic-bezier(0.2, 0.75, 0.25, 1), filter 220ms ease;
+}
+
+.player-avatar:hover {
+  z-index: 1;
+  transform: scale(1.08) rotate(-3deg);
+  filter: brightness(1.12);
+}
+
+.player-avatar__art {
+  display: block;
+  overflow: visible;
+  transition: transform 280ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.player-avatar:hover .player-avatar__art {
+  transform: scale(1.08) rotate(3deg);
+}
+
+.player-avatar__orbit {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: avatar-orbit 22s linear infinite;
+}
+
+@keyframes avatar-orbit {
+  to { transform: rotate(360deg); }
+}
+
 .game-world .fixed.inset-0 > div {
   animation: modal-arrive 220ms cubic-bezier(0.18, 0.8, 0.25, 1) both;
 }
@@ -452,7 +483,13 @@ h1, h2, h3, .gaming-font {
   }
 
   .game-motion-card,
-  .game-world .fixed.inset-0 > div {
+  .game-world .fixed.inset-0 > div,
+  .player-avatar__orbit {
     animation: none !important;
+  }
+
+  .player-avatar,
+  .player-avatar__art {
+    transition: none !important;
   }
 }

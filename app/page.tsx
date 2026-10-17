@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { useRouter } from 'next/navigation';
 import LfgBoard from './components/LfgBoard';
+import PlayerAvatar from './components/PlayerAvatar';
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPreset, setAvatarPreset] = useState<string | null>('rookie');
   const [isAdmin, setIsAdmin] = useState(false);
   const [trustScore, setTrustScore] = useState(0);
   const [totalRatings, setTotalRatings] = useState(0);
@@ -24,12 +27,14 @@ export default function Home() {
         // Fetch profile (username + admin status)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('username, is_admin')
+          .select('username, is_admin, avatar_url, avatar_preset')
           .eq('id', session.user.id)
           .single();
         if (profile) {
           setUsername(profile.username);
           setIsAdmin(profile.is_admin === true);
+          setAvatarUrl(profile.avatar_url);
+          setAvatarPreset(profile.avatar_preset);
         }
 
         // Fetch real Trust Score
@@ -83,8 +88,8 @@ export default function Home() {
               <p className="text-sm font-bold text-white">{username}</p>
             </div>
             {/* Tap avatar → open Gamer Card */}
-            <button onClick={() => router.push('/profile')} className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-600 border-2 border-white flex items-center justify-center font-bold text-black cursor-pointer hover:scale-110 transition">
-              {username.charAt(0).toUpperCase()}
+            <button onClick={() => router.push('/profile')} aria-label="Open player profile" className="rounded-full border-2 border-green-300 shadow-[0_0_14px_rgba(57,255,20,.22)] transition hover:scale-110">
+              <PlayerAvatar username={username} avatarUrl={avatarUrl} avatarPreset={avatarPreset} className="h-9 w-9 text-base" />
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
 import { requestStkPush, completeStkPayment } from '../../utils/mpesa';
 import { motion, AnimatePresence } from 'framer-motion';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 interface Event {
   id: string;
@@ -14,7 +15,7 @@ interface Event {
   max_teams: number;
   whatsapp_link: string;
   entry_fee: number;
-  profiles: { username: string };
+  profiles: { username: string; avatar_url: string | null; avatar_preset: string | null };
 }
 
 const GAMES = [
@@ -56,6 +57,15 @@ export default function EventsPage() {
 
   const router = useRouter();
 
+  const requireLogin = (action: string) => {
+    if (!userId) {
+      alert(`Please sign in to ${action}.`);
+      router.push('/login');
+      return true;
+    }
+    return false;
+  };
+
   const fetchUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -67,7 +77,7 @@ export default function EventsPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from('events')
-      .select('*, profiles:organizer_id(username)')
+      .select('*, profiles:organizer_id(username, avatar_url, avatar_preset)')
       .order('start_date', { ascending: true });
 
     if (error) console.error('Fetch Events Error:', error);
@@ -84,7 +94,7 @@ export default function EventsPage() {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
+    if (requireLogin('create an event')) return;
 
     const fee = Number(entryFee) || 0;
     const { error } = await supabase.from('events').insert({
@@ -109,7 +119,7 @@ export default function EventsPage() {
   };
 
   const handleJoinEvent = async (eventId: string) => {
-    if (!userId) return;
+    if (requireLogin('join an event')) return;
     const { error } = await supabase.from('event_participants').insert({
       event_id: eventId,
       user_id: userId
@@ -124,7 +134,7 @@ export default function EventsPage() {
 
   // REGISTER button: free = instant join, paid = M-Pesa flow
   const handleRegister = (event: Event) => {
-    if (!userId) return;
+    if (requireLogin('register for an event')) return;
     if ((event.entry_fee || 0) > 0) {
       setPayEvent(event);
       setPayStep('phone');
@@ -139,6 +149,7 @@ export default function EventsPage() {
 
   const requestPayment = async () => {
     if (!payEvent) return;
+    if (requireLogin('complete payment')) return;
     setPayProcessing(true);
     setPayError('');
 
@@ -174,6 +185,7 @@ export default function EventsPage() {
 
   const confirmPayment = async () => {
     if (!payEvent) return;
+    if (requireLogin('confirm payment')) return;
     setPayProcessing(true);
     setPayError('');
 
@@ -325,6 +337,12 @@ export default function EventsPage() {
 
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                      <PlayerAvatar
+                        username={event.profiles?.username || 'Unknown'}
+                        avatarUrl={event.profiles?.avatar_url}
+                        avatarPreset={event.profiles?.avatar_preset}
+                        className="h-6 w-6 border border-white/15 text-xs"
+                      />
                       <p className="text-xs text-gray-300">
                         Hosted by: <span className="font-bold text-white">{event.profiles?.username || 'Unknown'}</span>
                       </p>
