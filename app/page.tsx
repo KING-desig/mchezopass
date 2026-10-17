@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { useRouter } from 'next/navigation';
@@ -83,9 +82,10 @@ export default function Home() {
               <p className="text-xs text-gray-400 font-bold">PLAYER</p>
               <p className="text-sm font-bold text-white">{username}</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-600 border-2 border-white flex items-center justify-center font-bold text-black">
+            {/* Tap avatar → open Gamer Card */}
+            <button onClick={() => router.push('/profile')} className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-600 border-2 border-white flex items-center justify-center font-bold text-black cursor-pointer hover:scale-110 transition">
               {username.charAt(0).toUpperCase()}
-            </div>
+            </button>
           </div>
         </div>
       </header>
@@ -94,13 +94,7 @@ export default function Home() {
       <div className="max-w-md mx-auto pt-24 px-4 space-y-6">
         
         {/* Hero Card: Featured Event */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="relative group cursor-pointer"
-          onClick={() => router.push('/events')}
-        >
+        <div className="relative group cursor-pointer" onClick={() => router.push('/events')}>
           <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-purple-600 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
           <div className="relative bg-black rounded-lg p-6 border border-gray-800">
             <div className="flex justify-between items-start mb-4">
@@ -113,33 +107,32 @@ export default function Home() {
               JOIN BATTLE
             </button>
           </div>
-        </motion.div>
+        </div>
 
         {/* Quick Actions Grid */}
         <div>
           <h3 className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-widest">Main Menu</h3>
           <div className="grid grid-cols-2 gap-4">
-            {[
-              { label: 'LFG', icon: '🔍', color: 'green', route: () => scrollToFeed(), subtitle: 'Find Squad', accent: 'border-green-500 hover:bg-green-900/20' },
-              { label: 'CLANS', icon: '🛡️', color: 'blue', route: () => router.push('/teams'), subtitle: 'My Team', accent: 'border-blue-500 hover:bg-blue-900/20' },
-              { label: 'MATCHES', icon: '⚔️', color: 'red', route: () => router.push('/matches'), subtitle: 'Results', accent: 'border-red-500 hover:bg-red-900/20' },
-              { label: 'RANKS', icon: '👑', color: 'yellow', route: () => router.push('/leaderboard'), subtitle: 'Top Players', accent: 'border-yellow-500 hover:bg-yellow-900/20' },
-            ].map((item, index) => (
-              <motion.button
-                key={item.label}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.08 + index * 0.06, duration: 0.25 }}
-                whileHover={{ y: -3, scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={item.route}
-                className={`glass-panel rounded-lg border-l-4 p-4 text-left transition group ${item.accent}`}
-              >
-                <span className="mb-2 block text-3xl transition group-hover:scale-110">{item.icon}</span>
-                <span className="gaming-font block text-white font-bold">{item.label}</span>
-                <span className="text-xs text-gray-400">{item.subtitle}</span>
-              </motion.button>
-            ))}
+            <button onClick={scrollToFeed} className="glass-panel p-4 rounded-lg border-l-4 border-green-500 hover:bg-green-900/20 transition text-left group">
+              <span className="text-3xl block mb-2 group-hover:scale-110 transition">🔍</span>
+              <span className="text-white font-bold block gaming-font">LFG</span>
+              <span className="text-xs text-gray-400">Find Squad</span>
+            </button>
+            <button onClick={() => router.push('/teams')} className="glass-panel p-4 rounded-lg border-l-4 border-blue-500 hover:bg-blue-900/20 transition text-left group">
+              <span className="text-3xl block mb-2 group-hover:scale-110 transition">🛡️</span>
+              <span className="text-white font-bold block gaming-font">CLANS</span>
+              <span className="text-xs text-gray-400">My Team</span>
+            </button>
+            <button onClick={() => router.push('/matches')} className="glass-panel p-4 rounded-lg border-l-4 border-red-500 hover:bg-red-900/20 transition text-left group">
+              <span className="text-3xl block mb-2 group-hover:scale-110 transition">⚔️</span>
+              <span className="text-white font-bold block gaming-font">MATCHES</span>
+              <span className="text-xs text-gray-400">Results</span>
+            </button>
+            <button onClick={() => router.push('/leaderboard')} className="glass-panel p-4 rounded-lg border-l-4 border-yellow-500 hover:bg-yellow-900/20 transition text-left group">
+              <span className="text-3xl block mb-2 group-hover:scale-110 transition">👑</span>
+              <span className="text-white font-bold block gaming-font">RANKS</span>
+              <span className="text-xs text-gray-400">Top Players</span>
+            </button>
           </div>
         </div>
 
