@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +30,22 @@ const getGameTheme = (game: string) => {
   const found = GAMES.find((g) => g.name === game);
   if (found) return found;
   return { name: game, label: 'GAMING', accent: 'text-gray-400', border: 'border-gray-500/30', glow: 'shadow-gray-500/20', gradient: 'from-gray-700 via-gray-800 to-gray-950', bgImage: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80' };
+};
+
+const getWhatsappHref = (link: string) => {
+  const value = link.trim();
+  if (!value) return null;
+
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    const hostname = url.hostname.toLowerCase();
+    const isWhatsappHost = hostname === 'wa.me'
+      || hostname === 'whatsapp.com'
+      || hostname.endsWith('.whatsapp.com');
+    return url.protocol === 'https:' && isWhatsappHost ? url.toString() : null;
+  } catch {
+    return null;
+  }
 };
 
 export default function EventsPage() {
@@ -193,7 +210,7 @@ export default function EventsPage() {
               </div>
               <div>
                 <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">WhatsApp Lobby Link</label>
-                <input type="text" placeholder="https://chat.whatsapp.com/..." value={whatsappLink} onChange={(e) => setWhatsappLink(e.target.value)} className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
+                <input type="text" placeholder="chat.whatsapp.com/..." value={whatsappLink} onChange={(e) => setWhatsappLink(e.target.value)} className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
               </div>
               <motion.button type="submit" className="w-full bg-green-500 hover:bg-green-400 text-black py-2 rounded font-black text-sm gaming-font tracking-wider" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 PUBLISH EVENT
@@ -214,6 +231,7 @@ export default function EventsPage() {
             {events.map((event, index) => {
               const theme = getGameTheme(event.game);
               const isPaid = (event.entry_fee || 0) > 0;
+              const whatsappHref = getWhatsappHref(event.whatsapp_link);
               return (
                 <motion.div
                   key={event.id}
@@ -225,11 +243,13 @@ export default function EventsPage() {
                 >
                   {/* Event Banner */}
                   <div className={`relative h-28 w-full overflow-hidden bg-gradient-to-br ${theme.gradient}`}>
-                    <img
+                    <Image
                       src={theme.bgImage}
                       alt={event.game}
+                      fill
+                      sizes="(max-width: 448px) 100vw, 448px"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      className="absolute inset-0 w-full h-full object-cover opacity-60"
+                      className="object-cover opacity-60"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
                     <div className="absolute top-2 right-2 bg-black/80 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
@@ -269,9 +289,9 @@ export default function EventsPage() {
                     </div>
 
                     <div className="flex gap-2 mt-3">
-                      {event.whatsapp_link && (
+                      {whatsappHref && (
                         <motion.a
-                          href={event.whatsapp_link}
+                          href={whatsappHref}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex-1 text-center bg-green-600/20 text-green-400 border border-green-500/50 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_10px_rgba(57,255,20,0.2)]"
