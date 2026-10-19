@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
-import { requestStkPush, completeStkPayment } from '../../utils/mpesa';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlayerAvatar from '../components/PlayerAvatar';
 
@@ -44,16 +43,6 @@ export default function EventsPage() {
   const [maxTeams, setMaxTeams] = useState(16);
   const [whatsappLink, setWhatsappLink] = useState('');
   const [entryFee, setEntryFee] = useState(0);
-
-  // Payment modal states
-  const [payEvent, setPayEvent] = useState<Event | null>(null);
-  const [payStep, setPayStep] = useState<'phone' | 'pin' | 'success'>('phone');
-  const [payPhone, setPayPhone] = useState('');
-  const [payPin, setPayPin] = useState('');
-  const [payProcessing, setPayProcessing] = useState(false);
-  const [payError, setPayError] = useState('');
-  const [payReceipt, setPayReceipt] = useState('');
-  const [paymentId, setPaymentId] = useState('');
 
   const router = useRouter();
 
@@ -132,83 +121,14 @@ export default function EventsPage() {
     }
   };
 
-  // REGISTER button: free = instant join, paid = M-Pesa flow
+  // Paid registration stays unavailable until payments can be verified server-side.
   const handleRegister = (event: Event) => {
     if (requireLogin('register for an event')) return;
     if ((event.entry_fee || 0) > 0) {
-      setPayEvent(event);
-      setPayStep('phone');
-      setPayPhone('');
-      setPayPin('');
-      setPayError('');
-      setPayReceipt('');
+      alert('Paid registration is temporarily unavailable. Never enter your M-Pesa PIN on this site.');
     } else {
       handleJoinEvent(event.id);
     }
-  };
-
-  const requestPayment = async () => {
-    if (!payEvent) return;
-    if (requireLogin('complete payment')) return;
-    setPayProcessing(true);
-    setPayError('');
-
-    // 1) Record the payment as pending in the ledger
-    const { data: payRow, error: payErr } = await supabase
-      .from('payments')
-      .insert({
-        event_id: payEvent.id,
-        user_id: userId,
-        phone: payPhone,
-        amount: payEvent.entry_fee,
-        status: 'pending',
-      })
-      .select()
-      .single();
-
-    if (payErr || !payRow) {
-      setPayError('Could not start payment: ' + (payErr?.message || 'unknown error'));
-      setPayProcessing(false);
-      return;
-    }
-    setPaymentId(payRow.id);
-
-    // 2) Fire the STK push (mock: simulates Safaricom sending the PIN prompt)
-    const res = await requestStkPush(payPhone, payEvent.entry_fee, payRow.id);
-    if (res.success) {
-      setPayStep('pin');
-    } else {
-      setPayError(res.message || 'M-Pesa request failed. Try again.');
-    }
-    setPayProcessing(false);
-  };
-
-  const confirmPayment = async () => {
-    if (!payEvent) return;
-    if (requireLogin('confirm payment')) return;
-    setPayProcessing(true);
-    setPayError('');
-
-    const res = await completeStkPayment(paymentId, payPin);
-    if (res.success && res.receipt) {
-      // 3) Mark payment paid + register the player
-      await supabase.from('payments').update({ status: 'paid', mpesa_receipt: res.receipt }).eq('id', paymentId);
-      const { error: joinErr } = await supabase.from('event_participants').insert({ event_id: payEvent.id, user_id: userId });
-      if (joinErr) console.error('Join error after payment:', joinErr.message);
-      setPayReceipt(res.receipt);
-      setPayStep('success');
-    } else {
-      await supabase.from('payments').update({ status: 'failed' }).eq('id', paymentId);
-      setPayError(res.message || 'Payment failed.');
-    }
-    setPayProcessing(false);
-  };
-
-  const closePayModal = () => {
-    setPayEvent(null);
-    setPayStep('phone');
-    setPayPin('');
-    setPayError('');
   };
 
   return (
@@ -367,9 +287,14 @@ export default function EventsPage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        {isPaid ? `PAY KES ${event.entry_fee} & ENTER` : 'REGISTER NOW'}
+                        {isPaid ? `PAYMENT UNAVAILABLE (KES ${event.entry_fee})` : 'REGISTER NOW'}
                       </motion.button>
                     </div>
+                    {isPaid && (
+                      <p className="text-xs text-yellow-400">
+                        Paid registration is paused until payments can be verified securely. Never enter your M-Pesa PIN on this site.
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -378,82 +303,6 @@ export default function EventsPage() {
         )}
       </div>
 
-      {/* M-PESA PAYMENT MODAL */}
-      <AnimatePresence>
-        {payEvent && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="glass-panel p-6 rounded-xl w-full max-w-sm border border-green-500/40">
-              
-              {payStep === 'phone' && (
-                <>
-                  <div className="text-center mb-4">
-                    <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-green-500 flex items-center justify-center text-2xl font-black text-black gaming-font shadow-[0_0_25px_rgba(57,255,20,0.6)]">M</div>
-                    <h3 className="text-lg font-black text-white gaming-font">M-PESA PAYMENT</h3>
-                    <p className="text-xs text-gray-400">{payEvent.title}</p>
-                    <p className="text-2xl font-black text-yellow-400 gaming-font mt-1">KES {payEvent.entry_fee}</p>
-                  </div>
-                  <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Safaricom Number</label>
-                  <input
-                    type="tel"
-                    value={payPhone}
-                    onChange={(e) => setPayPhone(e.target.value)}
-                    placeholder="07XX XXX XXX"
-                    className="w-full bg-black/80 border border-gray-700 p-3 rounded text-sm text-white focus:border-green-500 outline-none mb-3"
-                  />
-                  {payError && <p className="text-xs text-red-400 mb-2">{payError}</p>}
-                  <div className="flex gap-3">
-                    <button onClick={closePayModal} className="flex-1 bg-gray-800 hover:bg-gray-700 py-2 rounded font-bold text-sm border border-gray-700">CANCEL</button>
-                    <motion.button onClick={requestPayment} disabled={payProcessing || payPhone.length < 10} className="flex-1 bg-green-500 hover:bg-green-400 text-black py-2 rounded font-black text-sm gaming-font disabled:opacity-50" whileTap={{ scale: 0.95 }}>
-                      {payProcessing ? 'SENDING...' : 'SEND REQUEST'}
-                    </motion.button>
-                  </div>
-                </>
-              )}
-
-              {payStep === 'pin' && (
-                <>
-                  <div className="text-center mb-4">
-                    <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-green-500 flex items-center justify-center text-2xl font-black text-black gaming-font shadow-[0_0_25px_rgba(57,255,20,0.6)]">M</div>
-                    <h3 className="text-lg font-black text-white gaming-font">ENTER M-PESA PIN</h3>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Simulated STK push sent to <span className="text-green-400 font-bold">{payPhone}</span>
-                    </p>
-                    <p className="text-xs text-gray-500">Pay KES {payEvent.entry_fee} to MCHEZOPASS</p>
-                  </div>
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    value={payPin}
-                    onChange={(e) => setPayPin(e.target.value.replace(/\D/g, ''))}
-                    placeholder="****"
-                    className="w-full bg-black/80 border border-gray-700 p-3 rounded text-center text-2xl tracking-[0.5em] text-white focus:border-green-500 outline-none mb-3"
-                  />
-                  {payError && <p className="text-xs text-red-400 mb-2">{payError}</p>}
-                  <div className="flex gap-3">
-                    <button onClick={closePayModal} className="flex-1 bg-gray-800 hover:bg-gray-700 py-2 rounded font-bold text-sm border border-gray-700">CANCEL</button>
-                    <motion.button onClick={confirmPayment} disabled={payProcessing || payPin.length !== 4} className="flex-1 bg-green-500 hover:bg-green-400 text-black py-2 rounded font-black text-sm gaming-font disabled:opacity-50" whileTap={{ scale: 0.95 }}>
-                      {payProcessing ? 'PROCESSING...' : 'CONFIRM PAYMENT'}
-                    </motion.button>
-                  </div>
-                </>
-              )}
-
-              {payStep === 'success' && (
-                <div className="text-center">
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 200 }} className="w-16 h-16 mx-auto mb-3 rounded-full bg-green-500 flex items-center justify-center text-3xl text-black shadow-[0_0_30px_rgba(57,255,20,0.7)]">✓</motion.div>
-                  <h3 className="text-lg font-black text-green-400 gaming-font mb-1">PAYMENT SUCCESSFUL</h3>
-                  <p className="text-xs text-gray-400 mb-2">You are registered for {payEvent.title}!</p>
-                  <p className="text-[10px] text-gray-500 mb-4">Receipt: <span className="text-white font-bold">{payReceipt}</span></p>
-                  <motion.button onClick={closePayModal} className="w-full bg-green-500 hover:bg-green-400 text-black py-2 rounded font-black text-sm gaming-font" whileTap={{ scale: 0.95 }}>
-                    DONE
-                  </motion.button>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </main>
   );
 }

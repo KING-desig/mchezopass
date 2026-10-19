@@ -6,8 +6,9 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60;
 export async function resolveMatchProofUrl(proofReference: string | null) {
   if (!proofReference) return { url: null, error: null };
 
-  if (/^https?:\/\//i.test(proofReference)) {
-    return { url: proofReference, error: null };
+  const pathSegments = proofReference.split('/');
+  if (pathSegments.length !== 3 || pathSegments.some((segment) => !segment || segment === '.' || segment === '..')) {
+    return { url: null, error: new Error('Invalid match proof reference') };
   }
 
   const { data, error } = await supabase.storage

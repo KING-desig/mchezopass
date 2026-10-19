@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { supabase } from '../../utils/supabase';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MATCH_PROOF_BUCKET, resolveMatchProofUrl } from '../../utils/matchProof';
 
 interface TeamSummary {
   name: string;
@@ -18,6 +19,7 @@ interface MatchRecord {
   team_b_id: string;
   winner_id?: string | null;
   screenshot_url?: string | null;
+  proofUrl?: string | null;
   teams_a?: TeamSummary | null;
   teams_b?: TeamSummary | null;
   events?: { title: string } | null;
@@ -42,8 +44,16 @@ export default function MatchesPage() {
       .select(`*, teams_a:team_a_id (name, tag), teams_b:team_b_id (name, tag), events:event_id (title)`)
       .or(`team_a_id.in.(${teamIds.join(',')}),team_b_id.in.(${teamIds.join(',')})`)
       .order('created_at', { ascending: false });
-    if (error) console.error('Error fetching matches:', error);
-    if (data) setMatches(data);
+    if (error) {
+      console.error('Error fetching matches:', error);
+    } else if (data) {
+      const matchesWithProof = await Promise.all(data.map(async (match) => {
+        const { url, error: proofError } = await resolveMatchProofUrl(match.screenshot_url);
+        if (proofError) console.error('Error loading match proof:', proofError.message);
+        return { ...match, proofUrl: url };
+      }));
+      setMatches(matchesWithProof);
+    }
     setLoading(false);
   }, []);
 
@@ -81,29 +91,57 @@ export default function MatchesPage() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) setScreenshotFile(e.target.files[0]);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert('Choose a JPG, PNG, or WebP screenshot.');
+      e.target.value = '';
+      setScreenshotFile(null);
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Choose a screenshot smaller than 8 MB.');
+      e.target.value = '';
+      setScreenshotFile(null);
+      return;
+    }
+    setScreenshotFile(file);
   };
 
   const submitResult = async () => {
     if (!activeMatch) return;
+    const myTeamId = getMyTeamIdInMatch(activeMatch);
+    if (!myTeamId) {
+      alert('You are not a member of either team in this match.');
+      return;
+    }
+    if (actionType === 'claim_win' && !screenshotFile) {
+      alert('Upload a screenshot of the final score before submitting your claim.');
+      return;
+    }
     setUploading(true);
     let screenshotUrl = activeMatch.screenshot_url;
-    const myTeamId = getMyTeamIdInMatch(activeMatch);
+    let uploadedProofPath: string | null = null;
 
     if (screenshotFile && actionType === 'claim_win') {
-      const fileExt = screenshotFile.name.split('.').pop();
-      const fileName = `${activeMatch.id}_${Date.now()}.${fileExt}`;
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        alert(authError?.message || 'Your session has expired. Sign in again to submit match proof.');
+        setUploading(false);
+        return;
+      }
+      const extension = screenshotFile.type === 'image/jpeg' ? 'jpg' : screenshotFile.type === 'image/png' ? 'png' : 'webp';
+      uploadedProofPath = `${activeMatch.id}/${user.id}/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await supabase.storage
-        .from('match-screenshots')
-        .upload(fileName, screenshotFile);
+        .from(MATCH_PROOF_BUCKET)
+        .upload(uploadedProofPath, screenshotFile, { contentType: screenshotFile.type });
 
       if (uploadError) {
         alert('Error uploading screenshot: ' + uploadError.message);
         setUploading(false);
         return;
       }
-      const { data: urlData } = supabase.storage.from('match-screenshots').getPublicUrl(fileName);
-      screenshotUrl = urlData.publicUrl;
+      screenshotUrl = uploadedProofPath;
     }
 
     const update: Record<string, string | null> = { screenshot_url: screenshotUrl ?? null };
@@ -124,6 +162,10 @@ export default function MatchesPage() {
 
     if (updateError) {
       alert('Error updating match: ' + updateError.message);
+      if (uploadedProofPath) {
+        const { error: cleanupError } = await supabase.storage.from(MATCH_PROOF_BUCKET).remove([uploadedProofPath]);
+        if (cleanupError) console.error('Could not clean up unlinked match proof:', cleanupError.message);
+      }
     } else {
       alert('Match updated successfully!');
       setActiveMatch(null);
@@ -261,10 +303,10 @@ export default function MatchesPage() {
                 </div>
               )}
 
-              {(actionType === 'confirm' || actionType === 'dispute') && activeMatch.screenshot_url && (
+              {(actionType === 'confirm' || actionType === 'dispute') && activeMatch.proofUrl && (
                 <div className="mb-4">
                   <label className="block text-[10px] text-gray-400 mb-1 uppercase tracking-widest font-bold">Opponent proof</label>
-                  <Image src={activeMatch.screenshot_url} alt="Match proof" width={800} height={160} className="w-full h-40 object-cover rounded-lg border border-gray-700" />
+                  <Image src={activeMatch.proofUrl} alt="Match proof" width={800} height={160} className="w-full h-40 object-cover rounded-lg border border-gray-700" />
                 </div>
               )}
 
