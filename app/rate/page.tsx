@@ -35,14 +35,11 @@ export default function RatePlayerPage() {
       return; 
     }
 
-    const { error: ratingError } = await supabase
-      .from('ratings')
-      .insert({
-        rater_id: user.id,
-        rated_id: ratedUser.id,
-        score: score,
-        comment: comment
-      });
+    const { error: ratingError } = await supabase.rpc('submit_rating', {
+      p_rated_id: ratedUser.id,
+      p_score: score,
+      p_comment: comment,
+    });
 
     if (ratingError) {
       setMessage('Error submitting rating.');

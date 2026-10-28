@@ -95,11 +95,10 @@ export default function AdminDashboard() {
     if (teamA === teamB) { alert('A team cannot play against itself.'); return; }
 
     setCreating(true);
-    const { error } = await supabase.from('matches').insert({
-      team_a_id: teamA,
-      team_b_id: teamB,
-      event_id: eventId || null,
-      status: 'pending',
+    const { error } = await supabase.rpc('create_match', {
+      p_team_a: teamA,
+      p_team_b: teamB,
+      p_event: eventId || null,
     });
 
     if (error) {
@@ -114,13 +113,10 @@ export default function AdminDashboard() {
 
   const resolveDispute = async (match: MatchRecord, side: 'team_a' | 'team_b') => {
     const winnerId = side === 'team_a' ? match.team_a_id : match.team_b_id;
-    const { error } = await supabase
-      .from('matches')
-      .update({
-        status: side === 'team_a' ? 'team_a_win' : 'team_b_win',
-        winner_id: winnerId,
-      })
-      .eq('id', match.id);
+    const { error } = await supabase.rpc('resolve_match', {
+      p_match_id: match.id,
+      p_winner: winnerId,
+    });
 
     if (error) {
       alert('Error resolving dispute: ' + error.message);

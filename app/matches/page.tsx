@@ -144,21 +144,22 @@ export default function MatchesPage() {
       screenshotUrl = uploadedProofPath;
     }
 
-    const update: Record<string, string | null> = { screenshot_url: screenshotUrl ?? null };
-
+    let updateError: { message: string } | null = null;
     if (actionType === 'claim_win') {
-      update.status = 'awaiting_confirmation';
-      update.winner_id = myTeamId;
+      const result = await supabase.rpc('claim_match', {
+        p_match_id: activeMatch.id,
+        p_screenshot_path: screenshotUrl,
+      });
+      updateError = result.error;
     } else if (actionType === 'confirm') {
-      update.status = activeMatch.winner_id === activeMatch.team_a_id ? 'team_a_win' : 'team_b_win';
+      const result = await supabase.rpc('confirm_match', { p_match_id: activeMatch.id });
+      updateError = result.error;
     } else if (actionType === 'dispute') {
-      update.status = 'disputed';
+      const result = await supabase.rpc('dispute_match', { p_match_id: activeMatch.id });
+      updateError = result.error;
+    } else {
+      updateError = { message: 'Unsupported match action.' };
     }
-
-    const { error: updateError } = await supabase
-      .from('matches')
-      .update(update)
-      .eq('id', activeMatch.id);
 
     if (updateError) {
       alert('Error updating match: ' + updateError.message);

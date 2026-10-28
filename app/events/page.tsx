@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlayerAvatar from '../components/PlayerAvatar';
+import { normalizeWhatsappUrl } from '../../utils/security';
 
 interface Event {
   id: string;
@@ -32,21 +33,7 @@ const getGameTheme = (game: string) => {
   return { name: game, label: 'GAMING', accent: 'text-gray-400', border: 'border-gray-500/30', glow: 'shadow-gray-500/20', gradient: 'from-gray-700 via-gray-800 to-gray-950', bgImage: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80' };
 };
 
-const getWhatsappHref = (link: string) => {
-  const value = link.trim();
-  if (!value) return null;
-
-  try {
-    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
-    const hostname = url.hostname.toLowerCase();
-    const isWhatsappHost = hostname === 'wa.me'
-      || hostname === 'whatsapp.com'
-      || hostname.endsWith('.whatsapp.com');
-    return url.protocol === 'https:' && isWhatsappHost ? url.toString() : null;
-  } catch {
-    return null;
-  }
-};
+const getWhatsappHref = (link: string) => normalizeWhatsappUrl(link);
 
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -102,14 +89,19 @@ export default function EventsPage() {
     e.preventDefault();
     if (requireLogin('create an event')) return;
 
-    const fee = Number(entryFee) || 0;
-    const { error } = await supabase.from('events').insert({
+      const fee = Number(entryFee) || 0;
+      const safeWhatsappLink = normalizeWhatsappUrl(whatsappLink);
+      if (whatsappLink.trim() && !safeWhatsappLink) {
+        alert('Enter a valid HTTPS WhatsApp group or wa.me link.');
+        return;
+      }
+      const { error } = await supabase.from('events').insert({
       organizer_id: userId,
       title,
       game,
       start_date: startDate,
       max_teams: maxTeams,
-      whatsapp_link: whatsappLink,
+      whatsapp_link: safeWhatsappLink ?? '',
       entry_fee: fee,
       is_free: fee <= 0,
       status: 'upcoming'
@@ -149,25 +141,43 @@ export default function EventsPage() {
   };
 
   return (
-    <main className="min-h-screen pb-24">
+    <main className="game-world min-h-screen pb-24">
       {/* Header */}
       <header className="fixed top-0 w-full z-50 glass-panel border-b border-purple-900/50">
-        <div className="max-w-md mx-auto p-4 flex justify-between items-center">
-          <h1 className="text-xl font-black text-purple-400 gaming-font">TOURNAMENT <span className="text-white">HUB</span></h1>
-          <button onClick={() => router.push('/')} className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded border border-gray-700">BACK</button>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+          <div>
+            <p className="text-[10px] text-green-400 font-bold tracking-[0.3em]">MCHZ / 04</p>
+            <h1 className="text-lg sm:text-xl font-black text-purple-400 gaming-font">TOURNAMENT <span className="text-white">HUB</span></h1>
+          </div>
+          <button onClick={() => router.push('/')} className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded border border-gray-700 gaming-font tracking-wider">← BACK TO BASE</button>
         </div>
       </header>
 
-      <div className="max-w-md mx-auto pt-24 px-4 space-y-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-black text-white gaming-font tracking-wider">UPCOMING EVENTS</h2>
+      <div className="max-w-6xl mx-auto pt-28 px-4 sm:px-6 space-y-8">
+        <section className="grid lg:grid-cols-[1fr_auto] gap-6 items-end">
+          <div>
+            <p className="text-xs text-green-400 font-bold tracking-[0.35em] mb-3">OPEN COMPETITION CALENDAR</p>
+            <h2 className="text-3xl sm:text-5xl font-black text-white gaming-font tracking-wider leading-tight">FIND YOUR<br /><span className="text-green-400">NEXT LOBBY.</span></h2>
+            <p className="max-w-xl mt-4 text-sm sm:text-base text-gray-400 leading-relaxed">Browse the live tournament circuit, link up with a squad, and put your name on the bracket.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-px border border-white/10 bg-white/10 min-w-[250px]">
+            <div className="bg-black/60 p-4"><p className="text-2xl font-black text-white gaming-font">{events.length.toString().padStart(2, '0')}</p><p className="text-[10px] text-gray-500 tracking-widest">UPCOMING</p></div>
+            <div className="bg-black/60 p-4"><p className="text-2xl font-black text-green-400 gaming-font">24/7</p><p className="text-[10px] text-gray-500 tracking-widest">OPEN QUEUE</p></div>
+          </div>
+        </section>
+
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-y border-white/10 py-4">
+          <div>
+            <p className="text-lg font-black text-white gaming-font tracking-wider">UPCOMING EVENTS</p>
+            <p className="text-xs text-gray-500 mt-1">Choose a bracket and claim your spot.</p>
+          </div>
           <motion.button
             onClick={() => setShowForm(!showForm)}
-            className="bg-green-500 hover:bg-green-400 text-black px-4 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_12px_rgba(57,255,20,0.4)]"
+            className="self-start sm:self-auto bg-green-500 hover:bg-green-400 text-black px-4 py-3 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_12px_rgba(57,255,20,0.4)]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            {showForm ? 'CANCEL' : '+ HOST EVENT'}
+            {showForm ? 'CANCEL' : '+ HOST NEW EVENT'}
           </motion.button>
         </div>
 
@@ -176,7 +186,7 @@ export default function EventsPage() {
           {showForm && (
             <motion.form
               onSubmit={handleCreateEvent}
-              className="glass-panel p-4 rounded-xl border border-green-500/30 space-y-3"
+              className="glass-panel p-5 sm:p-6 rounded-xl border border-green-500/30 space-y-3 max-w-3xl"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -227,7 +237,7 @@ export default function EventsPage() {
             <p className="text-gray-400 text-sm gaming-font">NO UPCOMING EVENTS. HOST THE FIRST!</p>
           </motion.div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-5">
             {events.map((event, index) => {
               const theme = getGameTheme(event.game);
               const isPaid = (event.entry_fee || 0) > 0;
@@ -239,15 +249,15 @@ export default function EventsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.08 }}
                   whileHover={{ y: -4 }}
-                  className={`glass-panel rounded-xl overflow-hidden border ${theme.border} shadow-lg ${theme.glow}`}
+                  className={`glass-panel rounded-xl overflow-hidden border ${theme.border} shadow-lg ${theme.glow} game-motion-card`}
                 >
                   {/* Event Banner */}
-                  <div className={`relative h-28 w-full overflow-hidden bg-gradient-to-br ${theme.gradient}`}>
+                  <div className={`relative h-36 w-full overflow-hidden bg-gradient-to-br ${theme.gradient}`}>
                     <Image
                       src={theme.bgImage}
                       alt={event.game}
                       fill
-                      sizes="(max-width: 448px) 100vw, 448px"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       className="object-cover opacity-60"
                     />
@@ -259,7 +269,7 @@ export default function EventsPage() {
                       <p className="text-[9px] font-black text-black gaming-font tracking-widest">{isPaid ? `KES ${event.entry_fee}` : 'FREE ENTRY'}</p>
                     </div>
                     <div className="absolute bottom-2 left-3 right-3">
-                      <h3 className="text-lg font-black text-white gaming-font tracking-wider drop-shadow-lg">{event.title}</h3>
+                      <h3 className="text-xl font-black text-white gaming-font tracking-wider drop-shadow-lg">{event.title}</h3>
                     </div>
                   </div>
 
@@ -298,7 +308,7 @@ export default function EventsPage() {
                           whileHover={{ backgroundColor: "rgba(34, 197, 94, 1)", color: "black", boxShadow: "0px 0px 20px rgba(57, 255, 20, 0.8)" }}
                           whileTap={{ scale: 0.95 }}
                         >
-                          JOIN LOBBY 💬
+                          JOIN LOBBY
                         </motion.a>
                       )}
                       <motion.button
@@ -307,7 +317,7 @@ export default function EventsPage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        {isPaid ? `PAYMENT UNAVAILABLE (KES ${event.entry_fee})` : 'REGISTER NOW'}
+                        {isPaid ? `KES ${event.entry_fee} / PAUSED` : 'REGISTER NOW'}
                       </motion.button>
                     </div>
                     {isPaid && (

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlayerAvatar from '../components/PlayerAvatar';
+import { normalizeWhatsappUrl } from '../../utils/security';
 
 interface Team {
   id: string;
@@ -67,14 +68,20 @@ export default function TeamsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const safeWhatsappLink = normalizeWhatsappUrl(teamWhatsapp);
+    if (teamWhatsapp.trim() && !safeWhatsappLink) {
+      alert('Enter a valid HTTPS WhatsApp group or wa.me link.');
+      return;
+    }
+
     const { data: teamData, error: teamError } = await supabase
       .from('teams')
       .insert({
-        name: teamName,
-        tag: teamTag,
+        name: teamName.trim().slice(0, 80),
+        tag: teamTag.trim().slice(0, 4),
         captain_id: user.id,
         main_game: teamGame,
-        whatsapp_link: teamWhatsapp,
+        whatsapp_link: safeWhatsappLink ?? '',
       })
       .select()
       .single();
@@ -218,9 +225,9 @@ export default function TeamsPage() {
                       </p>
                     </div>
 
-                    {team.whatsapp_link && (
+                    {normalizeWhatsappUrl(team.whatsapp_link) && (
                       <motion.a
-                        href={team.whatsapp_link}
+                        href={normalizeWhatsappUrl(team.whatsapp_link) ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full text-center bg-green-600/20 text-green-400 border border-green-500/50 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_10px_rgba(57,255,20,0.2)]"

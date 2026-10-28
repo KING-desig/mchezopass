@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlayerAvatar from './PlayerAvatar';
+import { normalizeWhatsappUrl } from '../../utils/security';
 
 interface LfgPost {
   id: string;
@@ -64,7 +65,18 @@ export default function LfgBoard() {
     e.preventDefault();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-        const { error } = await supabase.from('lfg_posts').insert({ user_id: user.id, game, message, location, whatsapp_link: whatsappLink });
+    const safeWhatsappLink = normalizeWhatsappUrl(whatsappLink);
+    if (whatsappLink.trim() && !safeWhatsappLink) {
+      alert('Enter a valid HTTPS WhatsApp group or wa.me link.');
+      return;
+    }
+    const { error } = await supabase.from('lfg_posts').insert({
+      user_id: user.id,
+      game,
+      message: message.trim().slice(0, 500),
+      location: location.trim().slice(0, 100),
+      whatsapp_link: safeWhatsappLink ?? '',
+    });
     if (!error) { 
       setShowForm(false); 
       setMessage(''); 
@@ -229,9 +241,9 @@ export default function LfgBoard() {
                     </span>
                   </div>
                   
-                  {post.whatsapp_link && (
+                  {normalizeWhatsappUrl(post.whatsapp_link) && (
                     <motion.a 
-                      href={post.whatsapp_link} 
+                      href={normalizeWhatsappUrl(post.whatsapp_link) ?? undefined} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="block w-full text-center bg-green-600/20 text-green-400 border border-green-500/50 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_10px_rgba(57,255,20,0.2)]"
