@@ -1,4 +1,7 @@
+'use client';
+
 import Image from 'next/image';
+import { useState } from 'react';
 
 const PRESET_AVATARS = {
   rookie: { label: 'Rookie', title: 'THE ROOKIE', colors: ['#52ff9a', '#075e3a'], glow: '#52ff9a' },
@@ -90,10 +93,12 @@ export default function PlayerAvatar({
   avatarPreset,
   className = '',
 }: PlayerAvatarProps) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const selectedPreset = avatarPreset && avatarPreset in PRESET_AVATARS
     ? avatarPreset as AvatarPreset
     : 'rookie';
   const preset = PRESET_AVATARS[selectedPreset];
+  const hasRemoteAvatar = Boolean(avatarUrl?.match(/^https?:\/\//) && !avatarUrl?.startsWith('preset://'));
 
   return (
     <span
@@ -105,8 +110,15 @@ export default function PlayerAvatar({
         boxShadow: `0 0 18px ${preset.glow}38, inset 0 0 0 1px ${preset.colors[0]}66`,
       }}
     >
-      {avatarUrl ? (
-        <Image src={avatarUrl} alt="" fill sizes="(max-width: 768px) 96px, 128px" className="absolute inset-0 h-full w-full object-cover" />
+      {hasRemoteAvatar && failedAvatarUrl !== avatarUrl ? (
+        <Image
+          src={avatarUrl!}
+          alt=""
+          fill
+          sizes="(max-width: 768px) 96px, 128px"
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={() => setFailedAvatarUrl(avatarUrl ?? null)}
+        />
       ) : (
         <PresetAvatarArt preset={selectedPreset} className="h-full w-full p-[1px]" />
       )}
