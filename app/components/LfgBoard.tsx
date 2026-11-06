@@ -4,11 +4,13 @@ import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import PlayerAvatar from './PlayerAvatar';
 import { normalizeWhatsappUrl } from '../../utils/security';
 
 interface LfgPost {
   id: string;
+  user_id: string;
   game: string;
   message: string;
   location: string;
@@ -17,7 +19,6 @@ interface LfgPost {
   profiles: { username: string; avatar_url: string | null; avatar_preset: string | null };
 }
 
-// SINGLE SOURCE OF TRUTH: art + color identity + gradient fallback for every game
 const GAMES = [
   { name: 'PUBG Mobile', label: 'BATTLE ROYALE', accent: 'text-orange-500', border: 'border-orange-500/30', glow: 'shadow-orange-500/20', gradient: 'from-orange-700 via-yellow-600 to-orange-900', bgImage: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=800&q=80' },
   { name: 'Call of Duty Mobile', label: 'TACTICAL OPS', accent: 'text-blue-500', border: 'border-blue-500/30', glow: 'shadow-blue-500/20', gradient: 'from-slate-800 via-blue-900 to-slate-950', bgImage: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&w=800&q=80' },
@@ -41,6 +42,7 @@ export default function LfgBoard() {
   const [message, setMessage] = useState('');
   const [location, setLocation] = useState('Nairobi');
   const [whatsappLink, setWhatsappLink] = useState('');
+  const router = useRouter();
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -78,11 +80,11 @@ export default function LfgBoard() {
       location: location.trim().slice(0, 100),
       whatsapp_link: safeWhatsappLink ?? '',
     });
-    if (!error) { 
-      setShowForm(false); 
-      setMessage(''); 
-      setWhatsappLink(''); 
-      fetchPosts(); 
+    if (!error) {
+      setShowForm(false);
+      setMessage('');
+      setWhatsappLink('');
+      fetchPosts();
     } else {
       alert('Error posting to lobby: ' + error.message);
     }
@@ -90,8 +92,7 @@ export default function LfgBoard() {
 
   return (
     <div className="space-y-6">
-      
-      {/* GAME LAUNCHER ROW */}
+
       <div>
         <h3 className="text-sm font-bold text-gray-500 mb-2 uppercase tracking-widest">Choose Your Battle</h3>
         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -131,8 +132,7 @@ export default function LfgBoard() {
         </div>
       </div>
 
-      {/* Header with Live Indicator */}
-      <motion.div 
+      <motion.div
         className="flex justify-between items-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -144,8 +144,8 @@ export default function LfgBoard() {
             LIVE LOBBY {gameFilter && <span className="text-green-400">• {gameFilter.toUpperCase()}</span>}
           </h2>
         </div>
-        <motion.button 
-          onClick={() => setShowForm(!showForm)} 
+        <motion.button
+          onClick={() => setShowForm(!showForm)}
           className="bg-green-500 hover:bg-green-400 text-black px-4 py-1.5 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_15px_rgba(57,255,20,0.5)]"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -154,11 +154,10 @@ export default function LfgBoard() {
         </motion.button>
       </motion.div>
 
-      {/* Create Post Form */}
       <AnimatePresence>
         {showForm && (
-          <motion.form 
-            onSubmit={handleCreatePost} 
+          <motion.form
+            onSubmit={handleCreatePost}
             className="glass-dark p-4 rounded-xl border border-green-500/30 space-y-3"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
@@ -166,9 +165,7 @@ export default function LfgBoard() {
             transition={{ duration: 0.3 }}
           >
             <select value={game} onChange={(e) => setGame(e.target.value)} className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none">
-              {GAMES.map((g) => (
-                <option key={g.name}>{g.name}</option>
-              ))}
+              {GAMES.map((g) => (<option key={g.name}>{g.name}</option>))}
             </select>
             <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} required placeholder="Squad message..." className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
             <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} required placeholder="Location" className="w-full bg-black/80 border border-gray-700 p-2 rounded text-sm text-white focus:border-green-500 outline-none" />
@@ -178,7 +175,6 @@ export default function LfgBoard() {
         )}
       </AnimatePresence>
 
-      {/* Posts Feed */}
       {loading ? (
         <div className="flex justify-center mt-10"><div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div></div>
       ) : posts.length === 0 ? (
@@ -192,8 +188,8 @@ export default function LfgBoard() {
           {posts.map((post, index) => {
             const theme = getGameTheme(post.game);
             return (
-              <motion.div 
-                key={post.id} 
+              <motion.div
+                key={post.id}
                 className={`glass-dark rounded-xl overflow-hidden border ${theme.border} shadow-lg ${theme.glow}`}
                 initial={{ opacity: 0, y: 50, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -201,16 +197,16 @@ export default function LfgBoard() {
                 whileHover={{ y: -5, boxShadow: "0px 10px 30px rgba(0,0,0,0.5)" }}
               >
                 <div className={`relative h-32 w-full overflow-hidden bg-gradient-to-br ${theme.gradient}`}>
-                  <motion.img 
-                    src={theme.bgImage} 
-                    alt={post.game} 
+                  <motion.img
+                    src={theme.bgImage}
+                    alt={post.game}
                     onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     className="absolute inset-0 w-full h-full object-cover opacity-60"
                     whileHover={{ scale: 1.1 }}
                     transition={{ duration: 0.7 }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-                  
+
                   <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-sm px-2 py-1 rounded border border-white/10">
                     <p className={`text-[10px] font-black ${theme.accent} gaming-font tracking-widest`}>{theme.label}</p>
                   </div>
@@ -218,7 +214,13 @@ export default function LfgBoard() {
                   <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
                     <div>
                       <h3 className="text-lg font-black text-white gaming-font tracking-wider drop-shadow-lg">{post.game.toUpperCase()}</h3>
-                      <div className="mt-1 flex items-center gap-1.5 text-[10px] font-bold text-gray-300">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); router.push(`/profile?u=${post.user_id}`); }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push(`/profile?u=${post.user_id}`); }}
+                        className="mt-1 flex items-center gap-1.5 text-[10px] font-bold text-gray-300 cursor-pointer hover:text-green-400 transition"
+                      >
                         <PlayerAvatar
                           username={post.profiles?.username || 'Unknown'}
                           avatarUrl={post.profiles?.avatar_url}
@@ -226,7 +228,7 @@ export default function LfgBoard() {
                           className="h-5 w-5 border border-white/20 text-[10px]"
                         />
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500"></span>
-                        HOST: {post.profiles?.username || 'UNKNOWN'}
+                        HOST: {post.profiles?.username || 'UNKNOWN'} <span className="text-gray-500">→</span>
                       </div>
                     </div>
                   </div>
@@ -234,7 +236,7 @@ export default function LfgBoard() {
 
                 <div className="p-4 bg-black/60">
                   <p className="text-gray-200 text-sm mb-3 font-medium leading-relaxed border-l-2 border-green-500 pl-3 italic">&quot;{post.message}&quot;</p>
-                  
+
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-[10px] bg-gray-800/80 text-gray-300 px-2 py-1 rounded border border-gray-700 font-bold flex items-center gap-1">
                        {post.location}
@@ -243,17 +245,17 @@ export default function LfgBoard() {
                       {new Date(post.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  
+
                   {normalizeWhatsappUrl(post.whatsapp_link) && (
-                    <motion.a 
-                      href={normalizeWhatsappUrl(post.whatsapp_link) ?? undefined} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <motion.a
+                      href={normalizeWhatsappUrl(post.whatsapp_link) ?? undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="block w-full text-center bg-green-600/20 text-green-400 border border-green-500/50 py-2 rounded font-black text-xs gaming-font tracking-wider shadow-[0_0_10px_rgba(57,255,20,0.2)]"
                       whileHover={{ backgroundColor: "rgba(34, 197, 94, 1)", color: "black", boxShadow: "0px 0px 20px rgba(57, 255, 20, 0.8)" }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      JOIN SQUAD 
+                      JOIN SQUAD
                     </motion.a>
                   )}
                 </div>

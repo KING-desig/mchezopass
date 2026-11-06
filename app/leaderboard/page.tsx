@@ -31,7 +31,7 @@ export default function LeaderboardPage() {
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, username, main_game, avatar_url, avatar_preset, ratings!rated_id (score)')
-      .limit(20); 
+      .limit(20);
 
     if (profiles) {
       const playersWithStats: Player[] = [];
@@ -43,7 +43,6 @@ export default function LeaderboardPage() {
           ? (ratings.reduce((sum: number, r: RatingSummary) => sum + r.score, 0) / total_ratings).toFixed(1)
           : null;
 
-        // Fetch their W/L Record
         const { data: stats } = await supabase.rpc('get_player_stats', { p_user_id: player.id });
         const wins = stats && stats.length > 0 ? stats[0].wins : 0;
         const losses = stats && stats.length > 0 ? stats[0].losses : 0;
@@ -61,7 +60,6 @@ export default function LeaderboardPage() {
         });
       }
 
-      // Sort by Wins (descending), then by Trust Score (descending)
       playersWithStats.sort((a, b) => {
         if (b.wins !== a.wins) return b.wins - a.wins;
         return (b.avg_score || 0) - (a.avg_score || 0);
@@ -76,6 +74,8 @@ export default function LeaderboardPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchLeaderboard();
   }, [fetchLeaderboard]);
+
+  const openProfile = (id: string) => router.push(`/profile?u=${id}`);
 
   return (
     <main className="min-h-screen pb-24">
@@ -101,9 +101,15 @@ export default function LeaderboardPage() {
         ) : (
           <div className="space-y-3">
             {players.map((player, index) => (
-              <div key={player.id} className="glass-panel p-4 rounded-xl border border-gray-800 flex items-center justify-between">
+              <div
+                key={player.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => openProfile(player.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openProfile(player.id); }}
+                className="glass-panel p-4 rounded-xl border border-gray-800 flex items-center justify-between cursor-pointer hover:border-green-500/50 hover:bg-green-900/10 transition group"
+              >
                 <div className="flex items-center gap-4">
-                  {/* Rank Badge */}
                   <div className={`w-8 h-8 flex items-center justify-center rounded-full font-black text-sm ${
                     index === 0 ? 'bg-yellow-500 text-black' :
                     index === 1 ? 'bg-gray-400 text-black' :
@@ -112,7 +118,7 @@ export default function LeaderboardPage() {
                   }`}>
                     {index + 1}
                   </div>
-                  
+
                   <PlayerAvatar username={player.username} avatarUrl={player.avatar_url} avatarPreset={player.avatar_preset} className="h-11 w-11 border border-white/15 text-lg" />
                   <div>
                     <h3 className="font-black text-white text-sm gaming-font">{player.username}</h3>
@@ -120,15 +126,18 @@ export default function LeaderboardPage() {
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <p className="text-lg font-black text-white gaming-font">
-                    <span className="text-green-400">{player.wins}W</span>
-                    <span className="text-gray-600 mx-1">-</span>
-                    <span className="text-red-400">{player.losses}L</span>
-                  </p>
-                  <p className="text-[10px] text-yellow-400 font-bold flex items-center justify-end gap-1">
-                    {player.avg_score ? player.avg_score.toFixed(1) : 'N/A'} <span className="text-yellow-400">★</span>
-                  </p>
+                <div className="text-right flex items-center gap-3">
+                  <div>
+                    <p className="text-lg font-black text-white gaming-font">
+                      <span className="text-green-400">{player.wins}W</span>
+                      <span className="text-gray-600 mx-1">-</span>
+                      <span className="text-red-400">{player.losses}L</span>
+                    </p>
+                    <p className="text-[10px] text-yellow-400 font-bold flex items-center justify-end gap-1">
+                      {player.avg_score ? player.avg_score.toFixed(1) : 'N/A'} <span className="text-yellow-400">★</span>
+                    </p>
+                  </div>
+                  <span className="text-gray-600 group-hover:text-green-400 transition text-sm">→</span>
                 </div>
               </div>
             ))}
