@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../utils/supabase';
@@ -193,9 +194,11 @@ export default function TeamsPage() {
                 >
                   {/* Game Banner */}
                   <div className={`relative h-24 w-full overflow-hidden bg-gradient-to-br ${theme.gradient}`}>
-                    <img
+                    <Image
                       src={theme.bgImage}
                       alt={team.main_game}
+                      fill
+                      sizes="(max-width: 448px) 100vw, 448px"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       className="absolute inset-0 w-full h-full object-cover opacity-60"
                     />

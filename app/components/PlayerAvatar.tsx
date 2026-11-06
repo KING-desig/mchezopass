@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 const PRESET_AVATARS = {
   rookie: { label: 'Rookie', title: 'THE ROOKIE', colors: ['#52ff9a', '#075e3a'], glow: '#52ff9a' },
   striker: { label: 'Striker', title: 'THE STRIKER', colors: ['#ffc15a', '#78350f'], glow: '#ffc15a' },
@@ -104,7 +106,7 @@ export default function PlayerAvatar({
       }}
     >
       {avatarUrl ? (
-        <img src={avatarUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <Image src={avatarUrl} alt="" fill sizes="(max-width: 768px) 96px, 128px" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <PresetAvatarArt preset={selectedPreset} className="h-full w-full p-[1px]" />
       )}

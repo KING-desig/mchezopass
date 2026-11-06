@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -112,9 +113,11 @@ export default function LfgBoard() {
                 gameFilter === g.name ? 'border-green-400 shadow-[0_0_12px_rgba(57,255,20,0.4)]' : g.border
               }`}
             >
-              <img
+              <Image
                 src={g.bgImage}
                 alt={g.name}
+                fill
+                sizes="112px"
                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                 className="absolute inset-0 w-full h-full object-cover opacity-70"
               />
